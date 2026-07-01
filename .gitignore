@@ -1,1 +1,47 @@
+# --- Project-local config ---
 CLAUDE.md
+
+# --- Python bytecode & cache ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Secrets & environment variables (12 Factor App) ---
+.env
+.env.*
+*.pem
+*.key
+
+# --- Build / distribution artifacts ---
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# --- Tests & coverage ---
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+
+# --- Tooling & IDE ---
+.mypy_cache/
+.ruff_cache/
+.idea/
+.vscode/
+*.swp
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- SnapStash local uploads (runtime data, not code) ---
+uploads/
+*.log
