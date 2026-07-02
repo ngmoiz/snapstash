@@ -461,8 +461,8 @@ Pose ce `ROADMAP.md` à la racine du repo `snapstash`. Quand tu ouvres une sessi
 # Suivi de progression
 
 ## Phase 0 — Préparation
-- [ ] B0.1 Dépôt et discipline
-- [ ] B0.2 12 Factor App
+- [x] B0.1 Dépôt et discipline
+- [x] B0.2 12 Factor App
 
 ## Phase 1 — Fondations (local)
 - [x] B1.1 Linux *(déjà fait)*
