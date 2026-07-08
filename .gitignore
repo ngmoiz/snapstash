@@ -45,3 +45,6 @@ Thumbs.db
 # --- SnapStash local uploads (runtime data, not code) ---
 uploads/
 *.log
+
+# --- Others ---
+.copilotignore
