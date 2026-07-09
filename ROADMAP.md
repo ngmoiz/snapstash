@@ -480,7 +480,7 @@ Pose ce `ROADMAP.md` à la racine du repo `snapstash`. Quand tu ouvres une sessi
 - [x] B1.1 Linux *(déjà fait)*
 - [x] B1.2 Shell scripting
 - [x] B1.3 Git / GitHub (workflow PR)
-- [ ] B1.4 Python (rafraîchissement)
+- [x] B1.4 Python (rafraîchissement)
 - [ ] B1.5 SnapStash v0 local
 - [ ] B1.6 Servir en prod (Gunicorn + NGINX)
 
