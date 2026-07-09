@@ -136,7 +136,19 @@ Chaque brique suit toujours la même structure :
 - **Piège** : ne passe pas trois semaines sur le CSS. Le frontend doit être *moche et fonctionnel*. Toute la valeur DevOps est dans les couches au-dessus.
 - **IA** : Claude Code peut t'aider à scaffolder le frontend HTML basique (c'est du temps perdu de le faire à la main). Mais l'API et la connexion à la base, écris-les toi-même.
 
-**🏁 Jalon Phase 1 : SnapStash tourne en local, code propre sur GitHub avec un historique de PR.**
+**🏁 Jalon Phase 1 : SnapStash tourne en local, servi proprement (Gunicorn + NGINX) comme en production, code propre sur GitHub avec un historique de PR.**
+
+### B1.6 — Servir SnapStash comme en prod (Gunicorn + reverse proxy)
+- **KodeKloud** : *DevOps Prerequisite course* (Web Server : frameworks, web servers)
+- **Niveau** : Intermédiaire
+- **Le concept** : le `flask run` (ou `app.run()`) de la brique précédente est un **serveur de développement** : mono-processus, lent, non sécurisé — il traite les requêtes une par une et s'écroule sous la charge. En production, on sépare les responsabilités sur deux étages. **Gunicorn** est un serveur d'application : il charge ton code Flask dans plusieurs *workers* (processus parallèles), les supervise et les redémarre s'ils plantent. **NGINX** est un serveur web placé en façade (*reverse proxy*) : il sert les fichiers statiques ultra-vite, gère le HTTPS, absorbe les clients lents, et transmet le reste à Gunicorn. Analogie : ton code est le chef ; `flask run` = le chef seul qui fait aussi l'accueil, un client à la fois ; Gunicorn = le gérant qui embauche une brigade et remplace les absents ; NGINX = le maître d'hôtel qui accueille, apporte la carte (statique) et répartit vers les cuisines. C'est la différence entre "mon code tourne" et "mon code est servi".
+- **Tu construis** :
+  - tu lances SnapStash avec `gunicorn --workers 3 app:app` au lieu de `flask run` ;
+  - tu mets **NGINX** en façade : il sert le frontend statique et fait suivre les appels API (`/upload`, `/images`) vers Gunicorn en interne ;
+  - tu vérifies avec `ss -tlnp` qui écoute sur quel port (NGINX sur 80, Gunicorn en interne).
+- **Réussi quand** : mon appli répond via NGINX sur le port 80 (plus via le port 5000 de dev) ; je peux tuer un worker Gunicorn et le service continue de répondre ; le warning "development server" a disparu.
+- **Piège** : oublier que NGINX et Gunicorn se parlent en interne — NGINX ne doit exposer que le port public, Gunicorn reste inaccessible depuis l'extérieur. Et ton code ne "vit" ni dans NGINX ni dans Gunicorn : il est *chargé par* les workers, il reste sur le disque.
+- **IA** : « Explique-moi le rôle de chaque étage (NGINX / Gunicorn / mon code) et l'interface WSGI entre eux, puis laisse-moi écrire ma config NGINX ; je te la ferai relire. » (pattern *explique puis je fais*).
 
 ---
 ---
@@ -466,10 +478,11 @@ Pose ce `ROADMAP.md` à la racine du repo `snapstash`. Quand tu ouvres une sessi
 
 ## Phase 1 — Fondations (local)
 - [x] B1.1 Linux *(déjà fait)*
-- [ ] B1.2 Shell scripting
-- [ ] B1.3 Git / GitHub (workflow PR)
+- [x] B1.2 Shell scripting
+- [x] B1.3 Git / GitHub (workflow PR)
 - [ ] B1.4 Python (rafraîchissement)
 - [ ] B1.5 SnapStash v0 local
+- [ ] B1.6 Servir en prod (Gunicorn + NGINX)
 
 ## Phase 2 — Conteneurisation
 - [x] B2.1 Docker *(déjà fait)*
