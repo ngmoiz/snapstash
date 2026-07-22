@@ -2,6 +2,9 @@ from flask import Flask, request, send_from_directory
 from werkzeug.utils import secure_filename
 import os
 import psycopg2
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def get_db_connection():
     return psycopg2.connect(os.environ["DATABASE_URL"])

@@ -15,6 +15,7 @@ ENV/
 # --- Secrets & environment variables (12 Factor App) ---
 .env
 .env.*
+!.env.example
 *.pem
 *.key
 
