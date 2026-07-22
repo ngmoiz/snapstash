@@ -125,16 +125,21 @@ Chaque brique suit toujours la même structure :
 
 ### B1.5 — SnapStash v0 : l'appli locale complète
 - **Niveau** : Intermédiaire
-- **Le concept** : une appli « 3-tiers » classique = présentation (frontend) + logique (API) + données (base). Tu assembles les trois.
+- **Le concept** : une appli « 3-tiers » classique = présentation (frontend) + logique (API) + données (base). Tu assembles les trois. Chaque élément stocké = une **image + un titre + un lien** : le socle d'un catalogue cliquable (galerie, page bio-link, vitrine produits — la finalité se décidera plus tard, la structure est la même).
+- **Avant de commencer — les décisions à poser** :
+  - **Schéma de base** : la table `items` prévoit dès le départ `id`, `filename`, `title`, `target_url`, `size`, `created_at`. Les deux champs `title` et `target_url` ne coûtent rien maintenant et évitent une migration plus tard ;
+  - **Nommage des endpoints** : `POST /items` et `GET /items` (plus générique que `/upload` / `/images`, ça vieillira mieux) ;
+  - **Variables d'environnement à définir dès le début** : `DATABASE_URL`, `UPLOAD_DIR`, `MAX_UPLOAD_SIZE`. Rien en dur dans le code ;
+  - **Reprendre l'API de B1.4** : tu gardes `GET /health` et tu construis autour — pas de nouveau projet.
 - **Tu construis** :
-  - une API Flask avec `POST /upload` (reçoit une image) et `GET /images` (liste les images) ;
+  - une API Flask avec `POST /items` (reçoit une image + un titre + une URL) et `GET /items` (renvoie la liste en JSON) ;
   - le stockage des fichiers dans un dossier local `./uploads/` pour l'instant ;
-  - les métadonnées (nom, date, taille) dans une base **PostgreSQL** locale ;
-  - une page HTML toute simple pour uploader et voir la galerie ;
-  - **toute la config (URL de la base, dossier d'upload) en variables d'environnement** (facteur 12 appliqué !).
-- **Réussi quand** : j'uploade une image depuis le navigateur, je la revois dans la galerie, et les métadonnées sont en base. Le tout en local.
-- **Piège** : ne passe pas trois semaines sur le CSS. Le frontend doit être *moche et fonctionnel*. Toute la valeur DevOps est dans les couches au-dessus.
-- **IA** : Claude Code peut t'aider à scaffolder le frontend HTML basique (c'est du temps perdu de le faire à la main). Mais l'API et la connexion à la base, écris-les toi-même.
+  - les métadonnées dans une base **PostgreSQL** locale ;
+  - une page HTML simple : formulaire d'upload + grille de cartes cliquables ;
+  - **toute la config en variables d'environnement** (facteur 12 appliqué !).
+- **Réussi quand** : j'uploade une image avec son titre et son lien depuis le navigateur, elle apparaît dans la grille, un clic sur la carte ouvre le lien, et les métadonnées sont bien en base. Le tout en local.
+- **Piège** : ne passe pas trois semaines sur le CSS. **Une seule session pour le frontend**, il doit être *moche et fonctionnel*. La tentation de peaufiner sera forte si tu envisages d'en faire une vraie page publique — résiste : toute la valeur DevOps est dans les couches au-dessus, et l'esthétique se retravaille en dix minutes n'importe quand.
+- **IA** : délègue le frontend, écris l'API toi-même. Prompt type : « Une page HTML unique, sans framework ni dépendance externe, CSS inclus dans le fichier. Un formulaire d'upload (fichier + titre + URL) et une grille CSS Grid : 2 colonnes sur mobile, 3 au-dessus de 768px. Chaque carte = image en haut (ratio fixe, `object-fit: cover`) + titre sur 2 lignes max avec ellipsis. Toute la carte est un lien `<a target="_blank" rel="noopener noreferrer sponsored">`. Les données viennent de `GET /items`. »
 
 **🏁 Jalon Phase 1 : SnapStash tourne en local, servi proprement (Gunicorn + NGINX) comme en production, code propre sur GitHub avec un historique de PR.**
 
