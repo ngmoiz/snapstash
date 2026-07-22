@@ -32,3 +32,16 @@ def upload():
     finally:
         conn.close()
     return {"status": "uploaded", "id": new_id, "filename": safe_name}
+
+@app.route("/images", methods=["GET"])
+def list_images():
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, filename, size_bytes, uploaded_at FROM images ORDER BY uploaded_at DESC;")
+            rows = cur.fetchall()
+        images =  [{"id": r[0], "filename": r[1], "size_bytes": r[2], "uploaded_at": r[3]} for r in rows]
+        conn.commit()
+    finally:
+        conn.close()
+    return {"images": images}
