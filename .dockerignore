@@ -51,5 +51,8 @@ uploads/
 .copilotignore
 notes/
 
+# -- Git folder ---
+.git/
+
 # -- Claude settings ---
 .claude/
