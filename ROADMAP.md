@@ -490,7 +490,7 @@ Pose ce `ROADMAP.md` à la racine du repo `snapstash`. Quand tu ouvres une sessi
 - [x] B1.6 Servir en prod (Gunicorn + NGINX)
 
 ## Phase 2 — Conteneurisation
-- [ ] B2.1 Docker *(déjà fait)*
+- [x] B2.1 Docker *(déjà fait)*
 - [ ] B2.2 Docker Compose (+ MinIO)
 
 ## Phase 3 — Cloud à la main (AWS)
