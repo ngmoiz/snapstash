@@ -176,11 +176,19 @@ Chaque brique suit toujours la même structure :
 - **Niveau** : Intermédiaire
 - **Le concept** : ton appli n'est pas seule - elle a besoin d'une base de données. Docker Compose décrit *plusieurs* conteneurs et leurs liens dans un seul fichier `docker-compose.yml`, et les lance ensemble. Analogie : un chef d'orchestre qui démarre tous les musiciens en même temps, accordés.
 - **Tu construis** : un `docker-compose.yml` qui lance ensemble (1) ton API, (2) un PostgreSQL, et (3) **MinIO** - un stockage objet compatible S3 qui tourne en local. Ça prépare *exactement* la migration vers S3 en Phase 3, mais gratuitement et hors-ligne.
-- **Réussi quand** : `docker compose up` démarre toute la stack ; l'upload écrit dans MinIO ; les métadonnées dans Postgres.
+- **Réussi quand** : `docker compose up` démarre toute la stack ; les métadonnées atterrissent dans Postgres ; MinIO tourne (prêt pour la Phase 3, pas encore branché à l'appli - le refactor `boto3`/S3 est reporté à B3.5).
 - **Piège** : les conteneurs se parlent par *nom de service*, pas par `localhost`. Comprendre ce point évite 80 % des galères réseau Docker.
 - **IA** : quand un conteneur n'arrive pas à joindre la base, demande à Claude de t'expliquer le réseau Docker (DNS interne) plutôt que de te donner le `docker-compose.yml` corrigé tout fait.
 
-**🏁 Jalon Phase 2 : `docker compose up` lance toute la stack SnapStash. Mon appli est portable.**
+### B2.3 - NGINX reverse proxy (dans Compose)
+- **Niveau** : Intermédiaire
+- **Le concept** : restaurer la façade NGINX de la Phase 1 (B1.6), mais **conteneurisée**. NGINX devient un **4e service** qui reçoit le trafic public (port 80), sert le statique/uploads directement, et transmet le reste à Gunicorn **par le nom de service**. Gunicorn n'est plus exposé à l'hôte - comme la DB, il devient interne.
+- **Tu construis** : un service `nginx` dans `docker-compose.yml` (image `nginx` épinglée) ; une config NGINX conteneurisée (`upstream` = `app:8000` par nom de service, chemins **internes**) ; tu retires le `ports:` du service `app` ; tu gères l'accès de NGINX au statique et aux uploads (volume partagé).
+- **Réussi quand** : l'appli répond sur `localhost:80` via NGINX ; `app` n'est plus joignable directement sur `8000` depuis l'hôte ; les `WORKER TIMEOUT` disparaissent ; le statique est servi par NGINX.
+- **Piège** : les chemins de ta `nginx.conf` Phase 1 sont **machine-spécifiques** -> les remplacer par des chemins conteneur ; l'`upstream` doit pointer vers le **nom de service** `app`, jamais `127.0.0.1` (même piège que `localhost`) ; les uploads sont écrits par `app` mais servis par `nginx` -> il leur faut un **volume partagé**.
+- **IA** : fais relire ta config NGINX conteneurisée ; demande comment partager le statique/uploads entre `app` et `nginx` (volume partagé vs `COPY`) plutôt que la solution toute faite.
+
+**🏁 Jalon Phase 2 : `docker compose up` lance toute la stack SnapStash (NGINX -> Gunicorn -> Postgres, + MinIO). Mon appli est portable.**
 
 ---
 ---
@@ -491,7 +499,8 @@ Pose ce `ROADMAP.md` à la racine du repo `snapstash`. Quand tu ouvres une sessi
 
 ## Phase 2 - Conteneurisation
 - [x] B2.1 Docker *(déjà fait)*
-- [ ] B2.2 Docker Compose (+ MinIO)
+- [x] B2.2 Docker Compose (+ MinIO)
+- [ ] B2.3 NGINX reverse proxy (dans Compose)
 
 ## Phase 3 - Cloud à la main (AWS)
 - [ ] B3.1 Compte / IAM / facturation / CLI
