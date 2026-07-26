@@ -12,6 +12,8 @@ def get_db_connection():
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"]=int(os.environ["MAX_UPLOAD_SIZE"])
 
+os.makedirs(os.environ["UPLOAD_DIR"], exist_ok=True)
+
 @app.route("/health")
 def health():
     return {"status": "ok"}
