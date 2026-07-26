@@ -14,12 +14,18 @@ The whole stack runs locally with Docker Compose:
 
 | Service | Image | Role | Exposed port |
 |---|---|---|---|
-| `app` | built from [`Dockerfile`](./Dockerfile) | Flask API served by Gunicorn | `8000` |
+| `nginx` | `nginx:1.30-alpine` | reverse proxy: serves the static page and uploads directly, proxies the API | `80` (public) |
+| `app` | built from [`Dockerfile`](./Dockerfile) | Flask API served by Gunicorn | internal only |
 | `db` | `postgres:15-alpine` | stores item metadata | internal only |
 | `minio` | `minio/minio` | S3-compatible object storage | `9000` (API), `9001` (console) |
 
+Request flow: `client → nginx:80 → app:8000 (Gunicorn) → db:5432`. NGINX is the
+only public door; it serves `/` and `/uploads/*` off disk and forwards everything
+else (the API) to the app. Gunicorn is **not** reachable from the host.
+
 Services talk to each other by **service name** over Compose's private network
-(e.g. the app reaches Postgres at `db:5432`, not `localhost`).
+(e.g. the app reaches Postgres at `db:5432` and NGINX proxies to `app:8000`, never
+`localhost`).
 
 > **Current status:** uploaded files are written to the app container's local
 > disk. MinIO already runs but is **not wired to the app yet** - moving uploads
@@ -28,6 +34,7 @@ Services talk to each other by **service name** over Compose's private network
 ## Tech stack
 
 - **Language:** Python 3.10 (Flask, served by Gunicorn)
+- **Reverse proxy:** NGINX
 - **Database:** PostgreSQL 15
 - **Object storage:** MinIO (S3-compatible)
 - **Containerisation:** Docker + Docker Compose
@@ -60,13 +67,13 @@ On the first run, Postgres executes [`db/init.sql`](./db/init.sql) to create the
 
 ### 3. Try it
 
-- Web UI: <http://localhost:8000>
+- Web UI: <http://localhost> (served through NGINX on port 80)
 - MinIO console: <http://localhost:9001> (log in with your `MINIO_ROOT_*` creds)
 - Health check:
 
   ```bash
-  curl localhost:8000/health          # {"status": "ok"}
-  curl localhost:8000/items           # {"items": []}
+  curl localhost/health          # {"status": "ok"}
+  curl localhost/items           # {"items": []}
   ```
 
 Stop the stack with `docker compose down` (add `-v` to also delete the volumes
@@ -95,6 +102,10 @@ All configuration comes from environment variables (see `.env.example`):
 | `GET` | `/items` | list items (newest first) |
 | `GET` | `/uploads/<filename>` | serve a stored file |
 
+In the Compose stack, `/` and `/uploads/*` are served directly by NGINX; the app's
+own routes for them remain as a standalone fallback (the app still works without a
+proxy in front).
+
 ## Project structure
 
 ```
@@ -103,11 +114,11 @@ All configuration comes from environment variables (see `.env.example`):
 ├── db/
 │   └── init.sql         # schema, run on first DB init
 ├── deploy/
-│   └── nginx.conf       # Phase 1 reverse-proxy sample (host setup, not in Compose)
+│   └── nginx.conf       # reverse-proxy config (mounted into the nginx container)
 ├── static/
 │   └── index.html       # minimal web UI
 ├── Dockerfile           # builds the app image
-├── docker-compose.yml   # app + postgres + minio
+├── docker-compose.yml   # nginx + app + postgres + minio
 ├── requirements.txt
 └── ROADMAP.md           # the DevOps learning path
 ```
