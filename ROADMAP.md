@@ -188,7 +188,47 @@ Chaque brique suit toujours la même structure :
 - **Piège** : les chemins de ta `nginx.conf` Phase 1 sont **machine-spécifiques** -> les remplacer par des chemins conteneur ; l'`upstream` doit pointer vers le **nom de service** `app`, jamais `127.0.0.1` (même piège que `localhost`) ; les uploads sont écrits par `app` mais servis par `nginx` -> il leur faut un **volume partagé**.
 - **IA** : fais relire ta config NGINX conteneurisée ; demande comment partager le statique/uploads entre `app` et `nginx` (volume partagé vs `COPY`) plutôt que la solution toute faite.
 
-**🏁 Jalon Phase 2 : `docker compose up` lance toute la stack SnapStash (NGINX -> Gunicorn -> Postgres, + MinIO). Mon appli est portable.**
+### B2.4 - Brancher MinIO : le stockage objet en local
+- **KodeKloud** : (concept S3 / stockage objet ; MinIO déjà lancé depuis B2.2)
+- **Niveau** : Intermédiaire
+- **Le concept** : jusqu'ici les uploads vont dans un dossier local (volume partagé). Tu refactorises l'appli pour qu'elle écrive dans **MinIO** via le SDK `boto3`, en le traitant comme du S3. MinIO EST compatible S3 : le même code tournera tel quel sur AWS en B3.5 - tu écris la logique une fois, gratuitement, hors-ligne.
+- **Tu construis** : un module de stockage (`storage.py`) qui parle S3 via `boto3` ; l'endpoint, la clé et le secret viennent de variables d'env (`S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`) - en local elles pointent vers MinIO, en prod vers AWS sans changer une ligne de code.
+- **Réussi quand** : j'uploade une image, elle atterrit dans un bucket MinIO (visible sur la console `:9001`), et la page l'affiche depuis MinIO. Le dossier local d'uploads n'est plus utilisé.
+- **Piège** : ce refactor **défait une partie de B2.3** - NGINX servait `/uploads/` depuis un volume partagé ; maintenant les images sont dans MinIO, il faut **re-décider qui les sert** (URL présignée MinIO ? l'app qui proxifie via `boto3` ?). Et `S3_ENDPOINT` doit pointer vers le **nom de service** `minio`, pas `localhost` (encore le piège réseau conteneur). Le bucket doit être créé au démarrage.
+- **IA** : demande l'explication du modèle S3 (bucket / clé / endpoint / credentials) et du pattern « client `boto3` configurable par variables d'env » ; écris `storage.py` toi-même, fais-le relire.
+- **Bénéfice** : à B3.5, il ne restera qu'à **changer les variables d'environnement** pour viser le vrai S3 - le code sera déjà écrit et testé.
+
+**🏁 Jalon Phase 2 : `docker compose up` lance toute la stack SnapStash (NGINX -> Gunicorn -> Postgres, + MinIO) ; les uploads vivent dans MinIO (stockage objet). Mon appli est portable et prête pour S3.**
+
+---
+---
+
+# PHASE 2.5 - Orchestration locale (Kubernetes, gratuit, sur ma machine)
+
+> ⚠️ **Prérequis : ne PAS commencer cette phase avant d'avoir DÉBUTÉ le cours Kubernetes sur KodeKloud.**
+> K8s repose sur des notions (Services, volumes, réseau, load balancing) qui font « clic » une fois le cours entamé - sinon on empile du YAML sans comprendre l'infra dessous. Tant que le cours K8s n'est pas commencé, on reste sur le fil rouge (Phase 3 et suivantes).
+
+**Pourquoi ici** : dès que j'ai commencé les bases K8s, plutôt que d'attendre la Phase 7, je déploie SnapStash sur un cluster **local** - gratuit, sur ma machine, sans un centime d'AWS. Terrain concret pendant que j'avance le cours, et prépa CKAD.
+
+### B2.5.1 - Cluster local : kind ou minikube
+- **Niveau** : Découverte
+- **Le concept** : **kind** (Kubernetes-in-Docker) ou **minikube** monte un vrai cluster Kubernetes dans des conteneurs sur ma machine. Zéro cloud, zéro coût. Sous WSL2, kind est le plus léger.
+- **Tu construis** : un cluster local qui tourne ; `kubectl get nodes` répond.
+- **Réussi quand** : cluster à un nœud, `kubectl` configuré, nœud `Ready`.
+
+### B2.5.2 - Déployer SnapStash : Pod, Deployment, Service
+- **Niveau** : Intermédiaire
+- **Le concept** : traduire mon `docker-compose.yml` en manifests K8s. Chaque service (app, postgres, nginx) devient un **Deployment** + un **Service**. Je réutilise les images construites en Phase 2.
+- **Tu construis** : les manifests YAML (`deployment.yaml`, `service.yaml`) pour l'app et Postgres ; l'app joint la base par le **nom de Service** (DNS interne K8s - même logique que le réseau Compose).
+- **Réussi quand** : `kubectl apply -f k8s/` déploie SnapStash, `kubectl get pods` montre tout `Running`, j'accède à l'app via un Service.
+- **Piège** : Postgres et MinIO sont *stateful* -> il leur faut un **PersistentVolume**, sinon les données meurent au redémarrage du pod. Les images locales doivent être chargées dans kind (`kind load docker-image`).
+
+### B2.5.3 - Config et secrets : ConfigMap et Secret
+- **Niveau** : Intermédiaire
+- **Le concept** : mes variables d'env (`DATABASE_URL`, clés MinIO) ne vont pas en dur dans les manifests. **ConfigMap** pour le non-sensible, **Secret** pour les mots de passe. Le facteur 12 appliqué à K8s.
+- **Réussi quand** : l'appli lit sa config depuis un ConfigMap et ses secrets depuis un Secret ; rien de sensible dans le YAML versionné.
+
+**🏁 Jalon Phase 2.5 : SnapStash tourne sur un vrai Kubernetes local, gratuitement. Je maîtrise Pod / Deployment / Service / ConfigMap / Secret - le cœur du CKAD - sur mon propre projet.**
 
 ---
 ---
@@ -242,7 +282,8 @@ Chaque brique suit toujours la même structure :
 - **KodeKloud** : (concept générique ; tu as déjà MinIO en local)
 - **Niveau** : Intermédiaire
 - **Le concept** : **S3** (Simple Storage Service) stocke des fichiers (« objets ») de façon durable et quasi-illimitée, *en dehors* de ton serveur. Pourquoi c'est crucial : si ton serveur meurt, tes images survivent. Analogie : un garde-meuble externe - ta maison (le serveur) peut brûler, tes affaires sont ailleurs en sécurité.
-- **Tu construis** : tu *refactorises* SnapStash pour qu'il uploade les images vers un bucket S3 (via le SDK AWS `boto3`) au lieu du dossier local. Comme tu avais MinIO (compatible S3) en Phase 2, le changement de code est minime - c'est la beauté du choix d'architecture.
+- **Note** : le refactor `boto3` a déjà été fait en **B2.4** (sur MinIO). Ici, comme MinIO est compatible S3, tu ne changes en principe que les **variables d'environnement** pour viser un vrai bucket AWS - le code est déjà écrit et testé. C'est la beauté du choix d'architecture.
+- **Tu construis** : un vrai bucket S3 AWS (accès public bloqué) ; tu bascules les `S3_*` de SnapStash vers ce bucket ; tu donnes à l'app le droit d'y écrire via un **rôle IAM** (pas de clés en dur).
 - **Réussi quand** : mes images uploadées atterrissent dans S3, et l'appli les ressert depuis S3.
 - **Piège** : un bucket S3 mal configuré peut être public par accident → fuite de données. Vérifie que l'accès public est bloqué et que l'appli accède via un *rôle IAM*, pas des clés en dur.
 - **IA** : « Explique-moi comment donner à mon EC2 le droit d'écrire dans S3 *sans* mettre de clés dans le code (rôle IAM attaché à l'instance). »
@@ -500,7 +541,13 @@ Pose ce `ROADMAP.md` à la racine du repo `snapstash`. Quand tu ouvres une sessi
 ## Phase 2 - Conteneurisation
 - [x] B2.1 Docker *(déjà fait)*
 - [x] B2.2 Docker Compose (+ MinIO)
-- [ ] B2.3 NGINX reverse proxy (dans Compose)
+- [x] B2.3 NGINX reverse proxy (dans Compose)
+- [ ] B2.4 Brancher MinIO (stockage objet local, boto3)
+
+## Phase 2.5 - Orchestration locale (Kubernetes) ⚠️ *après avoir commencé le cours K8s*
+- [ ] B2.5.1 Cluster local (kind / minikube)
+- [ ] B2.5.2 Deployment / Service (app + Postgres)
+- [ ] B2.5.3 ConfigMap / Secret
 
 ## Phase 3 - Cloud à la main (AWS)
 - [ ] B3.1 Compte / IAM / facturation / CLI
@@ -527,8 +574,9 @@ Pose ce `ROADMAP.md` à la racine du repo `snapstash`. Quand tu ouvres une sessi
 - [ ] B6.3 Terraform modules
 - [ ] B6.4 Ansible (bonus)
 
-## Phase 7 - Orchestration
-- [ ] B7.1 Kubernetes (local)
+## Phase 7 - Orchestration (cloud)
+> Les bases K8s (Pod/Deployment/Service/ConfigMap/Secret) sont faites en **Phase 2.5** (local). Ici : cluster **managé** + outils de production.
+- [ ] B7.1 Kubernetes managé (EKS)
 - [ ] B7.2 Helm
 - [ ] B7.3 GitOps / ArgoCD
 - [ ] B7.4 Prometheus / Grafana
