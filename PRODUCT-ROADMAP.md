@@ -79,6 +79,10 @@ puis Prometheus/Grafana (B7.4). Observabilité = infra.
 - Objectif assumé : **pratiquer AWS** (le plus employable).
 - Site en **PROD CONTINU sur EC2 (Phase 3)**, PAS sur EKS. EKS = apprentissage
   en sessions ponctuelles détruites après (Phase 7), jamais 24/7 pour un site léger.
+- **Trois environnements distincts** : (1) **NUC** = home lab K8s local (k3s), gratuit
+  et allumé 24/7, pour apprendre K8s (Phase 2.5) ; (2) **EC2** = prod continu du site ;
+  (3) **EKS** = apprentissage K8s cloud, ponctuel (Phase 7). Le NUC ne remplace pas
+  le prod AWS, il le prépare gratuitement.
 - Skill à pratiquer = **déployer des MàJ sur du live sans coupure** (rolling
   update, health checks, rollback, CI/CD), pas migrer entre clouds. Chaque
   couche produit = une mise à jour déployée sur le live.

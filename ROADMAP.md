@@ -203,25 +203,28 @@ Chaque brique suit toujours la même structure :
 ---
 ---
 
-# PHASE 2.5 - Orchestration locale (Kubernetes, gratuit, sur ma machine)
+# PHASE 2.5 - Orchestration locale (Kubernetes) — sur mon NUC (home lab)
 
-> ⚠️ **Prérequis : ne PAS commencer cette phase avant d'avoir DÉBUTÉ le cours Kubernetes sur KodeKloud.**
-> K8s repose sur des notions (Services, volumes, réseau, load balancing) qui font « clic » une fois le cours entamé - sinon on empile du YAML sans comprendre l'infra dessous. Tant que le cours K8s n'est pas commencé, on reste sur le fil rouge (Phase 3 et suivantes).
+> ✅ **Prérequis rempli** : cours Kubernetes démarré sur KodeKloud (septembre 2026).
+> (Règle de placement, désormais satisfaite : ne pas commencer cette phase avant d'avoir débuté le cours K8s — sinon on empile du YAML sans comprendre l'infra dessous.)
 
-**Pourquoi ici** : dès que j'ai commencé les bases K8s, plutôt que d'attendre la Phase 7, je déploie SnapStash sur un cluster **local** - gratuit, sur ma machine, sans un centime d'AWS. Terrain concret pendant que j'avance le cours, et prépa CKAD.
+**Pourquoi ici** : maintenant que le cours K8s est lancé, je déploie SnapStash sur un cluster **local** - gratuit, sans un centime d'AWS. Terrain concret pendant que j'avance le cours, et prépa CKAD.
 
-### B2.5.1 - Cluster local : kind ou minikube
+**Où — sur mon NUC, pas sur la machine de dev** : le NUC (Ubuntu 24.04, 4 cœurs, 2,8 Go RAM, 47 Go dispo) devient un **serveur headless** que je pilote **en SSH depuis mon laptop** (`192.168.1.86`). Raison : le disque Windows qui héberge mon WSL n'a que ~18 Go libres, trop juste pour K8s. Bonus : piloter un serveur distant en SSH = répétition **gratuite** de la Phase 3 (EC2).
+
+### B2.5.1 - Cluster local : k3s sur le NUC
 - **Niveau** : Découverte
-- **Le concept** : **kind** (Kubernetes-in-Docker) ou **minikube** monte un vrai cluster Kubernetes dans des conteneurs sur ma machine. Zéro cloud, zéro coût. Sous WSL2, kind est le plus léger.
-- **Tu construis** : un cluster local qui tourne ; `kubectl get nodes` répond.
-- **Réussi quand** : cluster à un nœud, `kubectl` configuré, nœud `Ready`.
+- **Le concept** : **k3s** est une distribution Kubernetes **certifiée et ultra-légère** (Rancher/SUSE), pensée pour petites machines / edge — parfaite pour un NUC allumé 24/7 (2,8 Go de RAM). C'est du **vrai** K8s : `kubectl` et les manifests sont **identiques** à EKS. minikube voudrait ~2 Go rien que pour lui → trop lourd ici.
+- **Alternative** : **minikube** reste utile pour rejouer un lab KodeKloud à l'identique (c'est leur défaut). `kubectl` est partagé → aucun apprentissage perdu à jongler entre les deux.
+- **Tu construis** : NUC passé en headless (fait) → install de k3s (service systemd) → `kubectl get nodes` répond ; à terme, piloter `kubectl` **depuis le laptop** via le kubeconfig de k3s.
+- **Réussi quand** : cluster à un nœud, nœud `Ready`, et je le pilote en SSH.
 
 ### B2.5.2 - Déployer SnapStash : Pod, Deployment, Service
 - **Niveau** : Intermédiaire
 - **Le concept** : traduire mon `docker-compose.yml` en manifests K8s. Chaque service (app, postgres, nginx) devient un **Deployment** + un **Service**. Je réutilise les images construites en Phase 2.
 - **Tu construis** : les manifests YAML (`deployment.yaml`, `service.yaml`) pour l'app et Postgres ; l'app joint la base par le **nom de Service** (DNS interne K8s - même logique que le réseau Compose).
 - **Réussi quand** : `kubectl apply -f k8s/` déploie SnapStash, `kubectl get pods` montre tout `Running`, j'accède à l'app via un Service.
-- **Piège** : Postgres et MinIO sont *stateful* -> il leur faut un **PersistentVolume**, sinon les données meurent au redémarrage du pod. Les images locales doivent être chargées dans kind (`kind load docker-image`).
+- **Piège** : Postgres et MinIO sont *stateful* -> il leur faut un **PersistentVolume**, sinon les données meurent au redémarrage du pod. ⚠️ Une image **buildée avec Docker** n'est **pas** visible par k3s (containerd séparé) -> l'importer (`docker save … | sudo k3s ctr images import -`) ou passer par un registre.
 
 ### B2.5.3 - Config et secrets : ConfigMap et Secret
 - **Niveau** : Intermédiaire
