@@ -545,7 +545,7 @@ Pose ce `ROADMAP.md` à la racine du repo `snapstash`. Quand tu ouvres une sessi
 - [x] B2.1 Docker *(déjà fait)*
 - [x] B2.2 Docker Compose (+ MinIO)
 - [x] B2.3 NGINX reverse proxy (dans Compose)
-- [ ] B2.4 Brancher MinIO (stockage objet local, boto3)
+- [x] B2.4 Brancher MinIO (stockage objet local, boto3)
 
 ## Phase 2.5 - Orchestration locale (Kubernetes) ⚠️ *après avoir commencé le cours K8s*
 - [ ] B2.5.1 Cluster local (kind / minikube)
