@@ -62,6 +62,29 @@ Chaque brique suit toujours la même structure :
 - **IA** : comment utiliser Claude / Claude Code sur cette brique précise.
 
 ---
+
+## 🚀 Parcours conseillé vers l'emploi (ordre à suivre & jalon "Job Ready")
+
+> Les fiches ci-dessous **gardent leur numéro de phase** (référence détaillée). Cette section dit dans quel **ordre** les faire et **quand commencer à candidater** — l'ordre des numéros n'est PAS l'ordre à suivre strictement.
+
+**Pourquoi** : viser la fin de la roadmap avant de postuler = sur-apprentissage avant confrontation au marché. Le socle recherché en junior est `Linux + Docker + Kubernetes + CI/CD + Terraform + AWS`, pas « énormément d'AWS sans Terraform ».
+
+**Ordre à suivre à partir de maintenant :**
+1. **Phase 2.5** — Kubernetes local (k3s sur le NUC) ← *en cours*
+2. **Phase 4** — CI/CD (GitHub Actions : lint / tests / build / push image) — *remontée ici*, très valorisable avec mon background QA
+3. **Phase 3** — AWS à la main (IAM, VPC, EC2, S3, RDS) + déploiement continu
+4. **Phase 6** — Terraform (recréer l'infra AWS en IaC) — *remontée AVANT les extras de scaling* ; « le moment charnière »
+5. **🚀 JALON JOB READY → JE COMMENCE LES CANDIDATURES.** Socle atteint : QA Automation + Linux + Git + Python/Bash + Docker + Compose + K8s pratique + CI/CD + Terraform bases + AWS bases + SnapStash démontrable. Ne PAS attendre Helm/ArgoCD/Prometheus/EKS/Istio/certifs pour postuler.
+6. *(en continu PENDANT les candidatures)* **Phase 5** (ALB, Auto Scaling, SQS, CloudWatch) puis **Phase 7** (Helm → ArgoCD → Prometheus, d'abord **gratuit sur le NUC/k3s** ; EKS en dernier) puis **Phase 8**.
+
+**En parallèle, dès MAINTENANT (aucun prérequis technique)** : CV + LinkedIn orientés DevOps (plus QA), réseau (meetups Cloud/K8s, ex-collègues), et savoir raconter SnapStash + mon pivot QA→DevOps. C'est le canal n°1 d'un premier poste en reconversion.
+
+**Ajustements de contenu (sans changer les fiches) :**
+- **Coupler l'apprentissage au produit** : SQS (B5.3) → C3 bot Telegram ; jobs planifiés + CloudWatch (B5.4) → C4/C5 (vérif dispo + metrics). Éviter les exercices artificiels.
+- **Istio (B7.5) = bonus / après emploi**, hors chemin critique.
+- **Certifications = APRÈS la pratique**, jamais un prérequis pour candidater. Cible : **CKA** si Platform/K8s, **AWS SAA** si Cloud/DevOps généraliste ; Terraform Associate / PCA optionnelles.
+
+---
 ---
 
 # PHASE 0 - Préparation et état d'esprit
