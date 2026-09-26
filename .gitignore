@@ -53,3 +53,6 @@ notes/
 
 # -- Claude settings ---
 .claude/
+
+# -- k8s secrets ---
+*-secrets.yaml

@@ -23,9 +23,25 @@ spec:
             - name: POSTGRES_DB
               value: snapstash
             - name: POSTGRES_USER
-              value: paris
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: POSTGRES_USER
             - name: POSTGRES_PASSWORD
-              value: montpellier
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: POSTGRES_PASSWORD
+          # envFrom:
+          #   - secretRef:
+          #       name: db-secret
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data/
+              name: db-pod-data
+      volumes:
+        - name: db-pod-data
+          persistentVolumeClaim:
+            claimName: db-data
 
 ---
 apiVersion: v1
@@ -33,7 +49,7 @@ kind: Service
 metadata:
   name: db
   labels:
-    app: db 
+    app: db
 spec:
   type: ClusterIP
   selector:
@@ -41,3 +57,15 @@ spec:
   ports:
     - port: 5432
       targetPort: 5432
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: db-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
