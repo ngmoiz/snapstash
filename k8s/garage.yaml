@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: garage
+  labels:
+    app: garage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: garage
+  template:
+    metadata:
+      labels:
+        app: garage
+    spec:
+      containers:
+        - name: garage
+          image: dxflrs/garage:v2.3.0
+          ports:
+            - containerPort: 3900
+            - containerPort: 3902
+          volumeMounts:
+            - mountPath: "/run/secrets"
+              name: garage-rpc-secret
+              readOnly: true
+            - mountPath: "/etc/garage.toml"
+              name: garage-config
+              subPath: garage.toml
+              readOnly: true
+            - mountPath: "/var/lib/garage/meta"
+              name: garage-meta
+            - mountPath: "/var/lib/garage/data"
+              name: garage-data
+      volumes:
+        - name: garage-rpc-secret
+          secret:
+            secretName: garage-secret
+            defaultMode: 0600
+        - name: garage-config
+          configMap:
+            name: garage-config
+            defaultMode: 0600
+        - name: garage-meta
+          persistentVolumeClaim:
+            claimName: garage-meta
+        - name: garage-data
+          persistentVolumeClaim:
+            claimName: garage-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: garage
+  labels:
+    app: garage
+spec:
+  type: ClusterIP
+  selector:
+    app: garage
+  ports:
+    - name: api
+      port: 3900
+      targetPort: 3900
+    - name: web
+      port: 3902
+      targetPort: 3902
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: garage-meta
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: garage-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
