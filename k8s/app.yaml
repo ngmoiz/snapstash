@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: snapstash-app
+  labels:
+    app: snapstash-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: snapstash-app
+  template:
+    metadata:
+      labels:
+        app: snapstash-app
+    spec:
+      containers:
+        - name: snapstash-app
+          image: snapstash-app:0.1.0
+          ports:
+            - containerPort: 8000
+          env:
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: snapstash-s3
+                  key: S3_ACCESS_KEY
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: snapstash-s3
+                  key: S3_SECRET_KEY
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: DATABASE_URL
+          envFrom:
+            - configMapRef:
+                name: app-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: snapstash-app
+  labels:
+    app: snapstash-app
+spec:
+  type: ClusterIP
+  selector:
+    app: snapstash-app
+  ports:
+    - port: 8000
+      targetPort: 8000
