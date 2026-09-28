@@ -38,11 +38,18 @@ spec:
           volumeMounts:
             - mountPath: /var/lib/postgresql/data/
               name: db-pod-data
+            - mountPath: /docker-entrypoint-initdb.d/init.sql
+              name: db-init
+              subPath: init.sql
+              readOnly: true
       volumes:
         - name: db-pod-data
           persistentVolumeClaim:
             claimName: db-data
-
+        - name: db-init
+          configMap:
+            name: db-init
+            defaultMode: 0444
 ---
 apiVersion: v1
 kind: Service
