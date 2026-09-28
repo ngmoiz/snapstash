@@ -43,7 +43,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: snapstash-app
+  name: app
   labels:
     app: snapstash-app
 spec:
