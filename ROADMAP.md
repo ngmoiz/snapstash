@@ -248,6 +248,8 @@ Chaque brique suit toujours la même structure :
 - **Tu construis** : les manifests YAML (`deployment.yaml`, `service.yaml`) pour l'app et Postgres ; l'app joint la base par le **nom de Service** (DNS interne K8s - même logique que le réseau Compose).
 - **Réussi quand** : `kubectl apply -f k8s/` déploie SnapStash, `kubectl get pods` montre tout `Running`, j'accède à l'app via un Service.
 - **Piège** : Postgres et MinIO sont *stateful* -> il leur faut un **PersistentVolume**, sinon les données meurent au redémarrage du pod. ⚠️ Une image **buildée avec Docker** n'est **pas** visible par k3s (containerd séparé) -> l'importer (`docker save … | sudo k3s ctr images import -`) ou passer par un registre.
+- **Livraison de l'image (décision)** : pour ce premier déploiement, on **importe** l'image `app` dans k3s (`k3s ctr images import`) — zéro infra en plus. Le passage à un **registre** (GHCR) + build/push automatique se fera en **Phase 4 (CI/CD, B4.2)**, pas avant. `db` / `garage` / `nginx` = images officielles, tirées directement. Les fichiers de config (`nginx.conf`, `index.html`) ne sont **pas** copiés/bind-montés : leur contenu entre dans le cluster via **ConfigMap** (B2.5.3).
+- **Réalisé** : MinIO remplacé par **Garage** sur k3s (MinIO community archivé en avril 2026 ; seul `S3_*` change, `storage.py` intact). Le déploiement ne se fait pas par un simple `kubectl apply -f k8s/` mais par des **scripts de bootstrap** (`garage/`, `db/`, `deploy/`) dans un ordre imposé par les dépendances : **garage → db → app → nginx** (voir README). Accès depuis le laptop via un Service **NodePort** (`<ip-du-nuc>:30000`).
 
 ### B2.5.3 - Config et secrets : ConfigMap et Secret
 - **Niveau** : Intermédiaire
@@ -571,9 +573,9 @@ Pose ce `ROADMAP.md` à la racine du repo `snapstash`. Quand tu ouvres une sessi
 - [x] B2.4 Brancher MinIO (stockage objet local, boto3)
 
 ## Phase 2.5 - Orchestration locale (Kubernetes) ⚠️ *après avoir commencé le cours K8s*
-- [ ] B2.5.1 Cluster local (kind / minikube)
-- [ ] B2.5.2 Deployment / Service (app + Postgres)
-- [ ] B2.5.3 ConfigMap / Secret
+- [x] B2.5.1 Cluster local (k3s sur le NUC)
+- [x] B2.5.2 Deployment / Service (nginx + app + Postgres + Garage)
+- [x] B2.5.3 ConfigMap / Secret *(réalisé dans la même branche que B2.5.2)*
 
 ## Phase 3 - Cloud à la main (AWS)
 - [ ] B3.1 Compte / IAM / facturation / CLI
