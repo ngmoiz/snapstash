@@ -38,6 +38,15 @@ spec:
           envFrom:
             - configMapRef:
                 name: app-config
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+            successThreshold: 1
 
 ---
 apiVersion: v1
