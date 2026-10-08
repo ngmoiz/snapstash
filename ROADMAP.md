@@ -71,7 +71,7 @@ Chaque brique suit toujours la même structure :
 
 **Ordre à suivre à partir de maintenant :**
 1. **Phase 2.5** — Kubernetes local (k3s sur le NUC) ← *en cours*
-2. **Phase 4** — CI/CD (GitHub Actions : lint / tests / build / push image) — *remontée ici*, très valorisable avec mon background QA
+2. **Phase 4** — CI/CD (GitHub Actions : lint / tests / build / push image / déploiement sur le NUC) — *remontée ici*, très valorisable avec mon background QA
 3. **Phase 3** — AWS à la main (IAM, VPC, EC2, S3, RDS) + déploiement continu
 4. **Phase 6** — Terraform (recréer l'infra AWS en IaC) — *remontée AVANT les extras de scaling* ; « le moment charnière »
 5. **🚀 JALON JOB READY → JE COMMENCE LES CANDIDATURES.** Socle atteint : QA Automation + Linux + Git + Python/Bash + Docker + Compose + K8s pratique + CI/CD + Terraform bases + AWS bases + SnapStash démontrable. Ne PAS attendre Helm/ArgoCD/Prometheus/EKS/Istio/certifs pour postuler.
@@ -332,26 +332,68 @@ Chaque brique suit toujours la même structure :
 
 # PHASE 4 - Automatiser le déploiement (CI/CD)
 
-**Objectif : un `git push` construit, teste et publie mon image automatiquement.**
+**Objectif : un `git push` teste, construit, publie et déploie SnapStash automatiquement sur le NUC.**
 
-### B4.1 - CI : Intégration Continue
-- **KodeKloud** : *Jenkins For Beginners* (4h20)
+- **Outil** : **GitHub Actions** (le code est déjà sur GitHub, et c'est l'outil le plus répandu aujourd'hui).
+- **KodeKloud** : *GitHub Actions* (10h30), suivi **dans l'ordre**. Règle de synchronisation : je ne commence une brique qu'après avoir vu ses modules, et je la fais **juste après**, avant d'avancer dans le cours.
+- **Registre** : **GHCR** (GitHub Container Registry). ECR et l'authentification OIDC vers AWS viendront avec la Phase 3.
+- **12-Factor** concernés : **V** (séparer build / release / run : c'est le but de la phase), **III** (secrets du pipeline), **X** (la même image est testée puis déployée).
+- **Culture du marché (optionnel)** : *Jenkins For Beginners*. Jenkins reste très présent en entreprise ; savoir expliquer ses concepts (pipeline, agents, Jenkinsfile) suffit. Pas d'implémentation prévue.
+
+| Modules du cours | Brique à faire juste après |
+|---|---|
+| 1 Introduction + 2 Core | B4.1 |
+| 3 Continuous Integration (partie tests) | B4.2 |
+| 3 Continuous Integration (partie Docker / GHCR) | B4.3 |
+| 4 Continuous Deployment, 5 Reusable Workflows, 6 Custom Actions, 7 Self Hosted Runner | B4.4 |
+| 8 Security Guide | B4.5 |
+
+### B4.1 - Premier workflow
+- **Cours** : modules 1 (Introduction) et 2 (Core).
+- **Niveau** : Découverte
+- **Le concept** : un **workflow** est un fichier YAML dans `.github/workflows/` ; il se déclenche sur un événement (push, PR), contient des **jobs** (qui tournent sur un **runner**), eux-mêmes faits de **steps** (une commande shell ou une **action** réutilisable).
+- **Tu construis** : un workflow déclenché sur les PR et sur `main` : checkout du code, une étape shell, deux jobs enchaînés avec `needs`.
+- **Réussi quand** : un check vert apparaît sur une PR, et je sais expliquer chaque ligne du fichier.
+
+### B4.2 - CI : lint + tests à chaque PR
+- **Cours** : module 3, partie tests (tests unitaires, couverture, cache, **service containers**).
 - **Niveau** : Intermédiaire
-- **Le concept** : **CI** = à chaque push, une machine vérifie automatiquement ton code (formatage, tests). Tu connais déjà ça par cœur via ton métier QA - c'est ton terrain. Analogie : un correcteur automatique qui relit chaque copie avant qu'elle ne soit acceptée.
-- **Tu construis** : un pipeline qui, à chaque PR, lance le linter et les tests. **Apprends Jenkins (KodeKloud) pour la culture du marché, mais implémente d'abord avec GitHub Actions** que tu as déjà sous la main - c'est plus simple et c'est partout aujourd'hui.
-- **Réussi quand** : une PR avec du code cassé est automatiquement bloquée par le pipeline.
-- **IA** : ton terrain QA. Demande à Claude de critiquer ta couverture de tests, pas de l'écrire à ta place.
+- **Le concept** : **CI** = à chaque PR, une machine vérifie automatiquement le code (linter, tests). C'est mon terrain QA.
+- **Partage des rôles** (règle de tri : les tests de l'API = code applicatif, la CI = infra) :
+  - **Claude écrit les tests `pytest`** des routes Flask (SnapStash n'en a aucun aujourd'hui) : `/health`, `GET` / `POST /items`, `/uploads/<f>`, cas d'erreur (champ manquant, fichier absent). Stockage S3 **simulé** avec `moto` (lancer Garage dans la CI = beaucoup de complexité pour peu d'apprentissage). Conditions : tests commentés + `tests/README.md`, expliqués **un par un** avant d'avancer.
+  - **Je construis** tout le côté CI : le **workflow** qui lance le linter (ex. `ruff`) et les tests ; un **Postgres en service container** (l'équivalent du `db` de Compose) avec les variables d'environnement nécessaires ; la **protection de `main`** (check CI obligatoire pour merger).
+- **Réussi quand** : une PR avec un test cassé **ne peut pas** être mergée, et je sais dire pour chaque test **ce qu'il prouve**.
+- **IA** : Claude écrit les tests ; moi, je dois pouvoir lire un rapport de CI rouge et expliquer quel comportement est cassé.
 
-### B4.2 - CD : Livraison Continue
-- **KodeKloud** : *Jenkins For Beginners* (pipelines)
+### B4.3 - Build + push de l'image
+- **Cours** : module 3, partie Docker (build, test, login et **push vers GHCR**).
+- **Niveau** : Intermédiaire
+- **Le concept** : après les tests, le pipeline **construit l'image** et la **publie** dans un registre. Fini le `docker save | k3s ctr images import` manuel.
+- **Tu construis** : à chaque merge sur `main`, l'image est buildée et poussée sur GHCR, taguée avec le **SHA du commit** (traçable : une image = un commit).
+- **Réussi quand** : un merge sur `main` produit une nouvelle image taguée dans GHCR, sans action manuelle.
+- **Piège** : aucun identifiant en clair dans le workflow ; utiliser le `GITHUB_TOKEN` fourni par GitHub, avec la permission `packages: write` uniquement là où elle sert.
+
+### B4.4 - Déploiement continu sur le NUC
+- **Cours** : modules 4 (CD, environments), 5, 6, puis **7 (Self Hosted Runner)**.
 - **Niveau** : Avancé
-- **Le concept** : **CD** = après les tests, le pipeline *construit l'image Docker et la publie* automatiquement dans un registre. Plus de build manuel. Le registre AWS s'appelle **ECR** (Elastic Container Registry).
-- **Tu construis** : le pipeline pousse l'image SnapStash vers ECR (ou GHCR de GitHub) à chaque merge sur `main`.
-- **Réussi quand** : un merge sur `main` produit automatiquement une nouvelle image taguée dans le registre, sans que je touche à rien.
-- **Piège** : ne mets jamais tes identifiants AWS en clair dans le pipeline. Utilise les *secrets* du CI (GitHub Secrets) ou, mieux, l'authentification OIDC.
-- **IA** : « Explique-moi OIDC entre GitHub Actions et AWS : pourquoi c'est plus sûr que des clés d'accès stockées en secret. »
+- **Le concept** : les runners hébergés par GitHub tournent sur Internet et **ne peuvent pas joindre** le NUC (`192.168.1.86`, adresse privée). Un **runner auto-hébergé** installé sur le NUC récupère les jobs depuis GitHub et les exécute localement, donc avec accès au cluster k3s.
+- **Tu construis** :
+  - le runner sur le NUC (service systemd, utilisateur dédié, droits `kubectl` limités au nécessaire) ;
+  - un job de déploiement : mise à jour de l'image du Deployment avec le nouveau tag, attente du `rollout status`, puis **test de fumée** (les 4 `curl` : `/health`, `GET /items`, `POST /items`, `GET /uploads/<f>`) ;
+  - un **environment** GitHub `nuc` (secrets et règles propres au déploiement).
+  - Bonus modules 5-6 : le test de fumée en **action composite**.
+- **Réussi quand** : un merge sur `main` déploie la nouvelle version sur le NUC, et si je rejoue la panne n°3 (mauvaise clé S3), le **pipeline passe au rouge**.
+- **Piège** : un runner auto-hébergé exécute le code des workflows **sur ma machine** : jamais sur un dépôt public avec des PR venant d'inconnus sans restriction (le runner ne doit servir qu'aux workflows de `main`).
 
-**🏁 Jalon Phase 4 : mon code part en production de façon automatisée et testée. Plus de manipulation manuelle d'images.**
+### B4.5 - Sécuriser le pipeline
+- **Cours** : module 8 (Security Guide).
+- **Niveau** : Intermédiaire
+- **Le concept** : un pipeline a accès aux secrets et au cluster ; c'est une cible. Moindre privilège et méfiance envers toute donnée venant d'une PR.
+- **Tu construis** : permissions minimales du `GITHUB_TOKEN` (bloc `permissions:`), actions épinglées sur une version précise, aucune donnée non fiable (titre de PR, nom de branche) injectée directement dans un `run:`, badge de statut dans le README.
+- **Réussi quand** : je sais justifier chaque permission accordée, et un titre de PR piégé n'exécute rien.
+- **IA** : « Explique-moi l'injection de script dans GitHub Actions avec un exemple concret, puis comment s'en protéger. »
+
+**🏁 Jalon Phase 4 : un merge sur `main` teste, construit, publie et déploie SnapStash sur le NUC, puis vérifie qu'il fonctionne. Plus de manipulation manuelle d'images.**
 
 ---
 ---
@@ -585,9 +627,12 @@ Pose ce `ROADMAP.md` à la racine du repo `snapstash`. Quand tu ouvres une sessi
 - [ ] B3.5 S3
 - [ ] B3.6 RDS
 
-## Phase 4 - CI/CD
-- [ ] B4.1 CI (tests automatiques)
-- [ ] B4.2 CD (build + push image)
+## Phase 4 - CI/CD (GitHub Actions)
+- [ ] B4.1 Premier workflow
+- [ ] B4.2 CI : lint + tests à chaque PR
+- [ ] B4.3 Build + push de l'image (GHCR)
+- [ ] B4.4 Déploiement continu sur le NUC (runner auto-hébergé + test de fumée)
+- [ ] B4.5 Sécuriser le pipeline
 
 ## Phase 5 - Scaling et résilience
 - [ ] B5.1 Load Balancer
