@@ -1,0 +1,10 @@
+name: CI Pipeline
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "hello world"
