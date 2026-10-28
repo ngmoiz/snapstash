@@ -15,4 +15,5 @@ jobs:
         run: echo "hello world"
       - name: checkout repo
         uses: actions/checkout@v7
-  
+      - name: list repo contents
+        run: ls
