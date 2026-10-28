@@ -11,9 +11,12 @@ jobs:
   hello:
     runs-on: ubuntu-latest
     steps:
-      - name: hello
-        run: echo "hello world"
       - name: checkout repo
         uses: actions/checkout@v7
-      - name: list repo contents
-        run: ls
+      - name: list repo contents and read file
+        run: |
+          echo "hello world"
+          ls
+          cat README.md
+      - name: generate ASCII artwork
+        run: cowsay -f dragon "I am a DRAGONNN"
