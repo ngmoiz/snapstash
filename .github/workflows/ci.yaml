@@ -18,7 +18,5 @@ jobs:
           echo "hello world"
           ls -ltria
           cat README.md
-      - name: generate ASCII artwork
-        run: |
-          pip install cowsay
-          cowsay -c turtle -t "I am a TURTLE"
+      - name: executing shell script
+        run: ./ascii-script.sh
