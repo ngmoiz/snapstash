@@ -21,4 +21,4 @@ jobs:
       - name: generate ASCII artwork
         run: |
           pip install cowsay
-          cowsay -f dragon "I am a DRAGONNN"
+          cowsay -c turtle -t "I am a TURTLE"
