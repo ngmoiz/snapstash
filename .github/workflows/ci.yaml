@@ -8,6 +8,28 @@ on:
       - main
 
 jobs:
+  build_job_1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: install cowsay program
+        run: pip install cowsay -y
+      - name: execute cowsay cmd
+        run: cowsay -c turtle -t "I am a TURTLE" >> turtle.txt
+      - name: upload turtle text file
+        uses: actions/upload-artifact@v7
+        with:
+          name: turtle-text-file
+          path: turtle.txt
+  test_job_1:
+    needs: build_job_1
+    runs-on: ubuntu-latest
+    steps:
+      - name: download turtle text file
+        uses: actions/download-artifact@v8
+        with:
+          name: turtle-text-file
+      - name: test cowsay program
+        run: cat turtle.txt
   script-job:
     runs-on: ubuntu-latest
     steps:
