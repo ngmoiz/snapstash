@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: install cowsay program
-        run: pip install cowsay -y
+        run: pip install cowsay
       - name: execute cowsay cmd
         run: cowsay -c turtle -t "I am a TURTLE" >> turtle.txt
       - name: upload turtle text file
